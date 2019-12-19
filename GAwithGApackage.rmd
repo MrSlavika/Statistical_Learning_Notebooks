@@ -1,0 +1,97 @@
+---
+title: "main"
+author: "Shutong Jin"
+date: "2019/12/18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(TSdist)
+library(class)
+library(gatbxr)
+library(mclust)
+library(GA)
+load("user_knowledge.rda")
+```
+
+
+```{r}
+dataset=train[,1:5]
+lab=train[,6]
+ob_len=26
+  id=runif(ob_len)*dim(dataset)[1]+1
+  id=as.integer(id)
+  ob_set=dataset[id,]
+  ob_lab=lab[id]
+  ob_set
+```
+```{r cars}
+Dist_EU <- function(x1,x2,weight){
+  #cat(dim(x1),' ',dim(x2),' ',dim(weight))
+  y2=(x1-x2)^2
+  y2=y2*weight
+  y2=sum(y2)
+  y2=sqrt(y2)
+  
+  return (y2);
+}
+```
+
+```{r}
+knn_classify<-function(w,x,lab,k){
+  dist=rep(0,dim(ob_set)[1])
+  for(jj in (1:dim(ob_set)[1])){
+    dist[jj]=Dist_EU(ob_set[jj,],x,weight=w)
+  }
+  
+  od=order(dist)
+  vote=rep(0,5)
+  #print(vote)
+  voting=ob_lab[which(od>=24)]
+  for (i in voting){
+    vote[i+1]=vote[i+1]+1
+  }
+  #print(vote)
+  res=which.max(vote)-1
+ # print(res)
+  if(lab==res){
+    return(0)
+  }
+  return(1)
+}
+```
+
+```{r}
+knn_train<-function(w,k=3){
+  
+  error_num=0
+  for (jj in 1:dim(dataset)[1]){
+    res=knn_classify(w,dataset[jj,],lab[jj],k)
+    error_num=error_num+res
+  }
+  return(1.0/error_num)
+}
+knn_train(w=rep(1,5),dataset=train[1:3,1:5],lab=train[1:3,6])
+```
+
+```{r}
+fitness<-function(w){
+ # print(w)
+  error=knn_train(w)
+  
+  return(1.0/error)
+}
+```
+
+
+
+```{r}
+lbound <- -10; ubound <- 10
+GA <- ga(type = "real-valued", fitness = fitness, lower = c(th = lbound), upper = ubound)
+summary(GA)
+```
+

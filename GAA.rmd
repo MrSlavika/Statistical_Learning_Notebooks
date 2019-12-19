@@ -1,0 +1,146 @@
+---
+title: "RA"
+author: "Shutong Jin"
+date: "2019/12/17"
+output: html_document
+---
+
+```{r}
+library(TSdist)
+library(class)
+library(gatbxr)
+library(mclust)
+load("user_knowledge.rda")
+```
+
+```{r cars}
+Dist_EU <- function(x1,x2,weight){
+  #cat(dim(x1),' ',dim(x2),' ',dim(weight))
+  y2=(x1-x2)^2
+  y2=y2*weight
+  y2=sum(y2)
+  y2=sqrt(y2)
+  
+  return (y2);
+}
+```
+
+```{r}
+train[1:5,1]
+```
+
+
+```{r}
+train[1:5,3]
+Dist_EU(train[1:5,1],train[1:5,3],weight=c(1,2,3,4,5))
+```
+
+```{r}
+  dataset=train[,1:5]
+  lab=train[,6]
+  ob_len=26
+  id=runif(ob_len)*dim(dataset)[1]+1
+  id=as.integer(id)
+  ob_set=dataset[id,]
+  ob_lab=lab[id]
+```
+
+
+```{r}
+knn_classify<-function(w,x,ob,lab,ob_lab,k){
+  dist=rep(0,dim(ob)[1])
+  for(jj in (1:dim(ob)[1])){
+    dist[jj]=Dist_EU(ob[jj,],x,weight=w)
+  }
+  
+  od=order(dist)
+  vote=rep(0,5)
+  #print(vote)
+  boud=dim(ob)[1]+1-k
+  boud=as.integer(boud)
+  voting=ob_lab[which(od>=24)]
+  for (i in voting){
+    vote[i+1]=vote[i+1]+1
+  }
+  #print(vote)
+  res=which.max(vote)-1
+ # print(res)
+  if(lab==res){
+    return(0)
+  }
+  return(1)
+}
+```
+
+```{r}
+knn_train<-function(w,dataset,lab,k=3){
+  
+  error_num=0
+  for (jj in 1:dim(dataset)[1]){
+    res=knn_classify(w,dataset[jj,],ob_set,lab[jj],ob_lab,k)
+    error_num=error_num+res
+  }
+  return(1.0/error_num)
+}
+knn_train(w=rep(1,5),dataset=train[1:3,1:5],lab=train[1:3,6])
+```
+
+```{r}
+fitness<-function(w,knn_data,lab,k){
+ # print(w)
+  error=knn_train(w,knn_data,lab,k)
+  
+  return(1.0/error)
+}
+```
+
+
+
+```{r}
+ga<-function(data,lab,dist="EU",k=1){
+  feature_dim=dim(data)[2]
+  l=dim(data)[1];
+  h=15;
+  pikc=data[1:h,]
+  pikc$fitness<-0;
+  U=data
+  it=100
+  for (tt in 1:h){
+      pikc[tt,]=c(runif(feature_dim),0)
+      pikc[tt,]=pikc[tt,]/sum(pikc[tt,])
+      weight=pikc[tt,1:feature_dim]
+      #print(weight)
+      pikc[tt,]$fitness=knn_train(weight,data[,1:5],lab,k)
+  }
+ for (qq in 1:it){
+    prev_h=h
+    for (tt in 1:2){
+      parents = rws(pikc[,6],2)
+      child=pikc[1,]
+      child[,1:3]=pikc[parents[1],1:3]
+      child[,4:5]=pikc[parents[2],4:5]
+      pikc[h+1,]=child
+      h=h+1
+    }
+    for (tt in prev_h+1:h){
+      pikc[tt,]=c(runif(feature_dim),0)
+      pikc[tt,]=pikc[tt,]/sum(pikc[tt,])
+      weight=pikc[tt,1:feature_dim]
+      pikc[tt,]$fitness=fitness(weight,data[,1:5],lab,k)
+      cat(tt,' ',pikc[tt,]$fitness,'\n')
+    }
+ }
+  #print(pikc)
+  return(pikc)
+}
+```
+
+```{r}
+pikc=ga(train[,1:5],train[,6])
+#print(pikc)
+```
+
+```{r}
+  
+```
+
